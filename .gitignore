@@ -1,0 +1,17 @@
+# Environment variables 
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# ChromaDB data
+chroma_store/
+
+# Uploads
+uploads/
+
+# Virtual environment
+venv/
+.venv/
