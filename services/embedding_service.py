@@ -53,3 +53,59 @@ def delete_candidate_chunks(candidate_id):
     except Exception as e:
         # Safe to ignore - chunks may not exist yet on first upload
         print(f"[embedding_service] Delete notice for candidate {candidate_id}: {e}")
+
+
+
+def search_candidate_chunks(candidate_id, query_text, job_id=None, n_results=6):
+ 
+    try:
+        if job_id is not None:
+            search_filter = {
+                "$and": [
+                    {"candidate_id": {"$eq": str(candidate_id)}},
+                    {"job_id":       {"$eq": str(job_id)}}
+                ]
+            }
+        else:
+            search_filter = {"candidate_id": {"$eq": str(candidate_id)}}
+
+        results = vector_store.similarity_search_with_score(
+            query  = query_text,
+            k      = n_results,
+            filter = search_filter
+        )
+        # Return just the text - scorer doesn't need the scores
+        # we get something like: [(Document(page_content="chunk text", metadata={...}), 0.85), ...]
+        return [doc.page_content for doc, score in results]
+
+    except Exception as e:
+        print(f"[embedding_service] Search error for candidate {candidate_id}: {e}")
+        return []
+
+
+def search_all_candidates(query_text, job_id=None, top_k=10):
+ 
+    try:
+        search_filter = {"job_id": str(job_id)} if job_id else None
+
+        results = vector_store.similarity_search_with_score(
+            query  = query_text,
+            k      = top_k,
+            filter = search_filter
+        )
+
+        output = []
+        for doc, score in results:
+            output.append({
+                "text":         doc.page_content,
+                "candidate_id": doc.metadata.get("candidate_id"),
+                "full_name":    doc.metadata.get("full_name"),
+                "email":        doc.metadata.get("email"),
+                "score":        round(float(score), 4)
+            })
+
+        return output
+
+    except Exception as e:
+        print(f"[embedding_service] Search all error: {e}")
+        return []
